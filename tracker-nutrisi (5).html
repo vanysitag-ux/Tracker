@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker Nutrisi</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, sans-serif;
+  background: #111;
+  color: #eee;
+  padding: 16px;
+}
+h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+p.sub { font-size: 13px; color: #777; margin-bottom: 18px; }
+
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.card { background: #1e1e1e; border-radius: 14px; padding: 14px 12px; }
+.card-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.card-num { font-size: 28px; font-weight: 800; line-height: 1; }
+.card-num.cal { color: #ff6040; }
+.card-num.pro { color: #40ffb0; }
+.card-unit { font-size: 12px; font-weight: 400; color: #666; }
+.bar-track { height: 4px; background: #2a2a2a; border-radius: 4px; margin-top: 10px; }
+.bar-fill { height: 4px; border-radius: 4px; transition: width 0.3s; min-width: 0; }
+.bar-fill.cal { background: #ff6040; }
+.bar-fill.pro { background: #40ffb0; }
+.bar-text { font-size: 10px; color: #555; margin-top: 4px; }
+
+.section { background: #1e1e1e; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+.row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #aaa; margin-bottom: 8px; }
+.row:last-child { margin-bottom: 0; }
+.row input {
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #eee;
+  font-size: 15px;
+  padding: 7px 10px;
+  width: 90px;
+  text-align: center;
+  -webkit-appearance: none;
+}
+
+.search-wrap { margin-bottom: 12px; }
+.search-input {
+  width: 100%;
+  background: #1e1e1e;
+  border: 2px solid #333;
+  border-radius: 12px;
+  color: #eee;
+  font-size: 16px;
+  padding: 13px 16px;
+  display: block;
+  -webkit-appearance: none;
+  outline: none;
+}
+.search-input:focus { border-color: #555; }
+
+.results-wrap { margin-bottom: 14px; }
+.results-title { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.food-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: #1e1e1e;
+  border: none;
+  border-radius: 10px;
+  color: #eee;
+  padding: 13px 14px;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 6px;
+  -webkit-appearance: none;
+}
+.food-btn:active { background: #2a2a2a; }
+.food-btn-name { font-weight: 600; font-size: 15px; }
+.food-btn-meta { font-size: 12px; color: #666; white-space: nowrap; margin-left: 8px; flex-shrink: 0; }
+.no-result { background: #1e1e1e; border-radius: 10px; padding: 16px; text-align: center; font-size: 14px; color: #555; }
+
+.log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.log-title-txt { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.06em; }
+.clear-btn { font-size: 12px; color: #555; background: none; border: none; cursor: pointer; padding: 4px 0; }
+
+.log-item {
+  background: #1e1e1e;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.log-item-left { flex: 1; min-width: 0; }
+.log-item-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-item-unit { font-size: 11px; color: #555; margin-top: 2px; }
+.log-item-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 8px; }
+.tag-cal { background: rgba(255,96,64,0.15); color: #ff6040; }
+.tag-pro { background: rgba(64,255,176,0.12); color: #40ffb0; }
+.del-btn { background: none; border: none; color: #444; font-size: 18px; cursor: pointer; padding: 2px 4px; }
+.del-btn:active { color: #ff6040; }
+
+.empty-state { text-align: center; padding: 36px 16px; color: #444; border: 2px dashed #2a2a2a; border-radius: 12px; font-size: 14px; }
+.empty-icon { font-size: 36px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Tracker Nutrisi</h1>
+<p class="sub">Ketik nama makanan → tap pilihan → otomatis tercatat</p>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-label">Kalori</div>
+    <div class="card-num cal" id="numCal">0 <span class="card-unit">kcal</span></div>
+    <div class="bar-track"><div class="bar-fill cal" id="barCal" style="width:0%"></div></div>
+    <div class="bar-text" id="txtCal">0 / 2000 kcal</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Protein</div>
+    <div class="card-num pro" id="numPro">0 <span class="card-unit">g</span></div>
+    <div class="bar-track"><div class="bar-fill pro" id="barPro" style="width:0%"></div></div>
+    <div class="bar-text" id="txtPro">0 / 120 g</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="row">Target kalori: <input type="number" id="tCal" value="2000" min="100" max="9999"> kcal</div>
+  <div class="row">Target protein: <input type="number" id="tPro" value="120" min="10" max="999"> g</div>
+</div>
+
+<div class="search-wrap">
+  <input class="search-input" type="search" id="searchInput" placeholder="Ketik nama makanan..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+</div>
+
+<div class="results-wrap" id="resultsWrap" style="display:none">
+  <div class="results-title" id="resultsTitle">Hasil pencarian</div>
+  <div id="resultsList"></div>
+</div>
+
+<div class="log-head">
+  <span class="log-title-txt">Log hari ini</span>
+  <button class="clear-btn" id="clearBtn">Hapus semua</button>
+</div>
+<div id="logList">
+  <div class="empty-state"><div class="empty-icon">🍽️</div>Belum ada makanan ditambahkan</div>
+</div>
+
+<script type="text/javascript">
+var FOODS = [
+  ["Nasi putih",204,4,"1 porsi (150g)"],
+  ["Nasi goreng",350,9,"1 porsi"],
+  ["Nasi uduk",280,7,"1 porsi"],
+  ["Nasi kuning",270,6,"1 porsi"],
+  ["Nasi padang",520,18,"1 porsi"],
+  ["Ayam bakar",230,27,"1 potong"],
+  ["Ayam goreng",300,25,"1 potong"],
+  ["Ayam geprek",450,28,"1 porsi"],
+  ["Ayam suwir",180,24,"75g"],
+  ["Ayam kecap",250,26,"1 potong"],
+  ["Rendang sapi",390,30,"1 potong"],
+  ["Sate ayam",280,22,"10 tusuk"],
+  ["Sate kambing",320,24,"10 tusuk"],
+  ["Bakso sapi",240,18,"1 porsi (5 bola)"],
+  ["Mie ayam",420,20,"1 porsi"],
+  ["Mie goreng",440,14,"1 porsi"],
+  ["Indomie goreng",390,8,"1 bungkus"],
+  ["Indomie rebus",330,8,"1 bungkus"],
+  ["Gado-gado",310,14,"1 porsi"],
+  ["Pecel",280,12,"1 porsi"],
+  ["Tempe goreng",150,10,"2 potong"],
+  ["Tempe bacem",170,11,"2 potong"],
+  ["Tahu goreng",100,7,"1 buah"],
+  ["Tahu bacem",130,9,"1 buah"],
+  ["Telur goreng",120,8,"1 butir"],
+  ["Telur rebus",90,8,"1 butir"],
+  ["Telur dadar",130,9,"1 butir"],
+  ["Opor ayam",370,26,"1 porsi"],
+  ["Sayur sop",120,5,"1 porsi"],
+  ["Sayur lodeh",150,4,"1 porsi"],
+  ["Tumis kangkung",90,3,"1 porsi"],
+  ["Cap cay",160,8,"1 porsi"],
+  ["Sop buntut",420,28,"1 porsi"],
+  ["Rawon",380,25,"1 porsi"],
+  ["Soto ayam",280,22,"1 porsi"],
+  ["Soto betawi",450,24,"1 porsi"],
+  ["Pempek",260,12,"1 porsi (3 pcs)"],
+  ["Martabak telur",380,14,"1 potong"],
+  ["Martabak manis",450,7,"1 potong"],
+  ["Pisang goreng",130,2,"1 buah"],
+  ["Roti bakar",200,5,"2 lembar"],
+  ["Bubur ayam",300,16,"1 porsi"],
+  ["Lontong sayur",340,10,"1 porsi"],
+  ["Ketoprak",290,11,"1 porsi"],
+  ["Siomay",220,12,"1 porsi"],
+  ["Batagor",310,14,"1 porsi"],
+  ["Ikan bakar",210,30,"1 ekor sedang"],
+  ["Ikan goreng",250,28,"1 ekor sedang"],
+  ["Udang goreng",180,22,"1 porsi"],
+  ["Kerupuk",80,1,"5 lembar"],
+  ["Es teh manis",80,0,"1 gelas"],
+  ["Teh tarik",120,3,"1 gelas"],
+  ["Jus alpukat",200,2,"1 gelas"],
+  ["Chicken cordon bleu",430,35,"1 porsi (200g)"],
+  ["Chicken steak",320,36,"1 porsi (150g)"],
+  ["Beef steak",400,40,"1 porsi (180g)"],
+  ["Salmon steak",350,38,"1 fillet (180g)"],
+  ["Grilled chicken breast",220,42,"1 dada (150g)"],
+  ["Fried chicken",350,28,"1 potong"],
+  ["Chicken wings",430,30,"6 pcs"],
+  ["Burger beef",540,28,"1 buah"],
+  ["Cheeseburger",590,30,"1 buah"],
+  ["Chicken burger",480,26,"1 buah"],
+  ["Hot dog",290,12,"1 buah"],
+  ["Spaghetti bolognese",480,22,"1 porsi"],
+  ["Spaghetti carbonara",580,24,"1 porsi"],
+  ["Pasta aglio olio",420,12,"1 porsi"],
+  ["Lasagna",510,26,"1 potong"],
+  ["Pizza margherita",270,12,"2 slice"],
+  ["Pizza pepperoni",340,15,"2 slice"],
+  ["Caesar salad",280,14,"1 porsi"],
+  ["Tuna salad",200,24,"1 porsi"],
+  ["Sandwich tuna",320,22,"1 buah"],
+  ["Sandwich chicken",360,26,"1 buah"],
+  ["Club sandwich",480,28,"1 buah"],
+  ["Wrap chicken",400,28,"1 buah"],
+  ["Burrito",530,24,"1 buah"],
+  ["Fish and chips",600,28,"1 porsi"],
+  ["Chicken nuggets",280,16,"6 pcs"],
+  ["Scrambled eggs",200,14,"2 telur"],
+  ["Omelette",220,15,"2 telur"],
+  ["Pancake",350,8,"3 lembar"],
+  ["Waffle",370,8,"1 buah"],
+  ["Garlic bread",200,5,"2 potong"],
+  ["Sushi roll",350,14,"8 pcs"],
+  ["Salmon sashimi",130,20,"6 pcs"],
+  ["Ramen",500,22,"1 porsi"],
+  ["Udon",400,14,"1 porsi"],
+  ["Pad thai",430,18,"1 porsi"],
+  ["Tom yum soup",150,12,"1 porsi"],
+  ["Dim sum",280,14,"4 pcs"],
+  ["Dumpling",220,12,"6 pcs"],
+  ["Kimchi",30,2,"100g"],
+  ["Korean BBQ pork",380,28,"1 porsi"],
+  ["Bibimbap",490,20,"1 porsi"],
+  ["Pisang",90,1,"1 buah"],
+  ["Apel",80,0,"1 buah"],
+  ["Jeruk",60,1,"1 buah"],
+  ["Semangka",50,1,"1 potong"],
+  ["Mangga",100,1,"1 buah sedang"],
+  ["Alpukat",160,2,"100g"],
+  ["Susu full cream",150,8,"250ml"],
+  ["Greek yogurt",130,17,"150g"],
+  ["Whey protein",120,24,"1 scoop (30g)"],
+  ["Protein shake",180,25,"1 porsi"],
+  ["Roti tawar",130,4,"2 lembar"],
+  ["Roti gandum",140,5,"2 lembar"],
+  ["Oatmeal",150,5,"40g kering"],
+  ["Kentang goreng",310,3,"1 porsi medium"],
+  ["Kentang rebus",130,3,"150g"],
+  ["Kopi susu",130,3,"1 gelas"],
+  ["Americano",10,0,"1 gelas"],
+  ["Latte",190,8,"1 gelas"],
+  ["Cappuccino",120,6,"1 gelas"],
+  ["Matcha latte",160,5,"1 gelas"],
+  ["Orange juice",110,2,"250ml"],
+  ["Coconut water",45,2,"250ml"]
+];
+
+var log = [];
+
+var searchInput = document.getElementById('searchInput');
+var resultsWrap = document.getElementById('resultsWrap');
+var resultsList = document.getElementById('resultsList');
+var resultsTitle = document.getElementById('resultsTitle');
+var logList = document.getElementById('logList');
+
+function doSearch() {
+  var q = searchInput.value.toLowerCase().replace(/\s+/g,' ').trim();
+  if (q.length === 0) {
+    resultsWrap.style.display = 'none';
+    return;
+  }
+  var hits = [];
+  for (var i = 0; i < FOODS.length; i++) {
+    if (FOODS[i][0].toLowerCase().indexOf(q) !== -1) {
+      hits.push(i);
+      if (hits.length >= 8) break;
+    }
+  }
+  if (hits.length === 0) {
+    resultsTitle.textContent = 'Tidak ditemukan';
+    resultsList.innerHTML = '<div class="no-result">Coba kata lain, misal: "chicken", "nasi", "ayam"</div>';
+  } else {
+    resultsTitle.textContent = 'Ketuk untuk tambah:';
+    var html = '';
+    for (var j = 0; j < hits.length; j++) {
+      var f = FOODS[hits[j]];
+      html += '<button class="food-btn" onclick="addFood(' + hits[j] + ')">' +
+        '<span class="food-btn-name">' + f[0] + '</span>' +
+        '<span class="food-btn-meta">' + f[1] + ' kcal &bull; ' + f[2] + 'g protein</span>' +
+        '</button>';
+    }
+    resultsList.innerHTML = html;
+  }
+  resultsWrap.style.display = 'block';
+}
+
+function addFood(idx) {
+  var f = FOODS[idx];
+  log.push({ name: f[0], cal: f[1], pro: f[2], unit: f[3], id: Date.now() });
+  searchInput.value = '';
+  resultsWrap.style.display = 'none';
+  renderLog();
+  renderStats();
+}
+
+function removeFood(id) {
+  var newLog = [];
+  for (var i = 0; i < log.length; i++) {
+    if (log[i].id !== id) newLog.push(log[i]);
+  }
+  log = newLog;
+  renderLog();
+  renderStats();
+}
+
+function renderStats() {
+  var tCal = parseInt(document.getElementById('tCal').value) || 2000;
+  var tPro = parseInt(document.getElementById('tPro').value) || 120;
+  var sumCal = 0, sumPro = 0;
+  for (var i = 0; i < log.length; i++) { sumCal += log[i].cal; sumPro += log[i].pro; }
+
+  document.getElementById('numCal').innerHTML = sumCal + ' <span class="card-unit">kcal</span>';
+  document.getElementById('numPro').innerHTML = sumPro + ' <span class="card-unit">g</span>';
+  document.getElementById('barCal').style.width = Math.min(100, Math.round(sumCal / tCal * 100)) + '%';
+  document.getElementById('barPro').style.width = Math.min(100, Math.round(sumPro / tPro * 100)) + '%';
+  document.getElementById('txtCal').textContent = sumCal + ' / ' + tCal + ' kcal';
+  document.getElementById('txtPro').textContent = sumPro + ' / ' + tPro + ' g';
+}
+
+function renderLog() {
+  if (log.length === 0) {
+    logList.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽️</div>Belum ada makanan ditambahkan</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < log.length; i++) {
+    var f = log[i];
+    html += '<div class="log-item">' +
+      '<div class="log-item-left">' +
+        '<div class="log-item-name">' + f.name + '</div>' +
+        '<div class="log-item-unit">' + f.unit + '</div>' +
+      '</div>' +
+      '<div class="log-item-right">' +
+        '<span class="tag tag-cal">' + f.cal + ' kcal</span>' +
+        '<span class="tag tag-pro">' + f.pro + 'g</span>' +
+        '<button class="del-btn" onclick="removeFood(' + f.id + ')">✕</button>' +
+      '</div>' +
+    '</div>';
+  }
+  logList.innerHTML = html;
+}
+
+searchInput.addEventListener('input', doSearch);
+searchInput.addEventListener('keyup', doSearch);
+
+document.getElementById('clearBtn').addEventListener('click', function() {
+  if (log.length > 0 && window.confirm('Hapus semua log hari ini?')) {
+    log = [];
+    renderLog();
+    renderStats();
+  }
+});
+
+document.getElementById('tCal').addEventListener('input', renderStats);
+document.getElementById('tPro').addEventListener('input', renderStats);
+</script>
+</body>
+</html>
